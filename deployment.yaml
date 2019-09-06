@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: brokers
+spec:
+  selector:
+    name: broker
+  clusterIP: None
+  ports:
+  - name: foo # Actually, no port is needed.
+    port: 1337
+    targetPort: 1337
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: broker
+  labels:
+    name: broker
+spec:
+  hostname: broker
+  subdomain: brokers
+  containers:
+    - name: broker-engine
+      image: khowling/broker-engine:2.8
+      imagePullPolicy: Always
+      ports:
+        - containerPort: 1337
+
+
+  restartPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: engine
+  labels:
+    app: engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: engine
+  template:
+    metadata:
+      labels:
+        app: engine
+    spec:
+      containers:
+      - name: broker-engine
+        image: khowling/broker-engine:2.8
+        env:
+          - name: ENGINE_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: BROKER_HOST
+            value: "broker.brokers.default.svc.cluster.local"
