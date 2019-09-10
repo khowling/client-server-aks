@@ -1,10 +1,10 @@
 {
-    "name": "engine broker tcp simulation",
-    "version": "1.0.0",
-    "description": "Node.js on Docker",
-    "author": "First Last <first.last@example.com>",
-    "main": "index.js",
-    "scripts": {
-      "start": "node index.js"
-    }
+  "name": "engine-broker-tcp-simulation",
+  "version": "1.0.0",
+  "description": "Node.js on Docker",
+  "author": "First Last <first.last@example.com>",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
   }
+}

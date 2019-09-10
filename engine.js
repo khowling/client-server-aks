@@ -6,6 +6,16 @@ http://www.hacksparrow.com/tcp-socket-programming-in-node-js.html.) */
 
 const net = require('net')
 
+function blockCpuFor(ms) {
+	var now = new Date().getTime();
+	var result = 0
+	while(true) {
+		result += Math.random() * Math.random();
+		if (new Date().getTime() > now +ms)
+			return;
+	}	
+}
+
 function backoff(engineid, broker_host) {
 	return new Promise((acc, rej) => {
 
@@ -25,7 +35,17 @@ function backoff(engineid, broker_host) {
 			const msg = data.toString().split(":")
 			if (msg[0] === 'SUCCESS') {
 				let cnt = 1
-				hb_int = setInterval (() => client.write(`HeartBeat:${engineid}:${cnt++}`), 10000)
+				hb_int = setInterval (() => {
+					console.log (`Engine heartbeat: ${cnt}`)
+					client.write(`HeartBeat:${engineid}:${cnt++}`)
+				}, 10000)
+			} else if (msg[0] === 'DOWORK') {
+				console.log (`Engine, command from broker 'DOWORK', starting for ${Number(msg[1])} mS`)
+				blockCpuFor (Number(msg[1]))
+				console.log (`Engine DOWORK finished`)
+			} else if (msg[0] === 'KILL') {
+				console.log (`Engine, command from broker 'KILL', starting with exit code ${Number(msg[1])}`)
+				process.exit(Number(msg[1]))
 			} else {
 				console.error (msg[1])
 				client.end()

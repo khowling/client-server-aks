@@ -19,56 +19,118 @@ Kubernetes
 Optional: you can just use a pre-build image already referenced in the deployment.yaml
 
 ```
-new_val="2.8"
+new_val="2.11"
 docker build -t khowling/broker-engine:$new_val .
 docker push khowling/broker-engine:$new_val
-sed -i "s/broker-engine:2.7/broker-engine:${new_val}/g" deployment.yaml
+sed -i "s/broker-engine:2.10/broker-engine:${new_val}/g" deployment.yaml
 ```
 
 ### Create AKS Cluster
 
 This sets max-pods to 250 per node, allowing smaller clusters to scales to >2000 engines
 
-Optional: or use your own
+(Optional: or use your own)
 
 ```
-az group create kh-aks-loadtest
+RG=<resource-group-name>
+CN=<cluster-name>
+
+```
+az group create -n $RG
 
 az aks create \
-  --resource-group kh-aks-loadtest \
-  --name kh-lt2  \
-  --node-count 5 \
+  --resource-group $RG \
+  --name $CN  \
+  --node-count 2 \
   --enable-addons monitoring \
   --generate-ssh-keys \
   --max-pods 250  \
-  --node-vm-size Standard_D2s_v3 \
   --network-plugin azure \
-  --enable-vmss
-
+  --enable-vmss \
+  --node-vm-size Standard_D2s_v3
 ```
 
-Scale 
+(Optional) to add low-pri nodepool - the template will automatically `taint` the nodes in the pool with "pooltype=lowpri:NoSchedule", the taint effect `NoSchedule` means that no pod will be able to schedule onto the nodes unless it has a matching toleration.  (FYI `PreferNoSchedule` is a “soft” version of NoSchedule)
 
 ```
-az aks scale -n kh-lt2 -g kh-aks-loadtest -c 15
+az group deployment create \
+    --resource-group $RG \
+    --template-file lowpri.json \
+    --parameters clusterName="$CN"
 ```
 
+Locate & tolerate your PODs by adding in the spec (at the end of the `deplyoment.yaml`):
+
 ```
-az aks get-credentials -n kh-lt2 -g kh-aks-loadtest
+      nodeSelector:
+        agentpool: agentpool
+      tolerations:
+      - key: "pooltype"
+        operator: "Equal"
+        value: "lowpri"
+```
+
+
+Scale (without low-pri)
+
+```
+az aks scale -n $CN -g $RG -c 15
+```
+
+Scale (with low-pri)
+
+https://docs.microsoft.com/en-us/azure/aks/cluster-autoscaler#use-the-cluster-autoscaler-with-multiple-node-pools-enabled
+
+Engine resource
+
+
+1 CPU == Azure vCORE = (Standard_DS2_v2 == 2)
+Mem (standard_DS2_v2 == 7113156Ki)
+
+Add to deployment.yaml
+```
+        resources:
+          limits:
+            memory: "16Mi"
+            cpu: "5m"
+```
+To see the status
+```
+kubectl -n kube-system describe configmap cluster-autoscaler-status
 ```
 
 ### Deploy and Test application
+
+```
+az aks get-credentials -n $CN -g $RG
+```
 
 ```
 kubectl apply -f deployment.yaml
 ```
 
 ```
-kubectl scale --replicas=1500 deployment/engine
+kubectl scale --replicas=20 deployment/engine
 ```
 
 ```
 kubectl logs broker -f
+```
+
+### Simulate 5 minutes of load
+
+to get the <IP> run `kubectl get svc brokers-instruct`
+
+```
+curl <IP>:8080/dowork?time=300000
+curl <IP>:8080/kill?code=0
+```
+
+look at the cluster with 
+
+```
+kubectl top nodes
+kubectl top pods
 ```
 
 ### Clear up 
