@@ -34,6 +34,7 @@ This sets max-pods to 250 per node, allowing smaller clusters to scales to >2000
 ```
 RG=<resource-group-name>
 CN=<cluster-name>
+```
 
 ```
 az group create -n $RG
