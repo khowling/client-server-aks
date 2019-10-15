@@ -1,15 +1,15 @@
 
-# Broker - Engine scalling test
+# Process connectivity scalling test
 
 ## Architecture
 
-Broker - a simple service that opens a TCP server, registers egine TCP connections through a simple handshake, and accepts engine heartbeat messages.
+Server - a simple service that opens a TCP server, registers egine TCP connections through a simple handshake, and accepts client heartbeat messages.
 
-Engine - makes a connection to the Broker, and sends sequenced heartbeat messages.
+Client - makes a connection to the Server, and sends sequenced heartbeat messages.
 
 Kubernetes
-* The Broker is sceduled as a pod (with no deployment), with a headless service that defines a selector to the POD, so the DNS points directly to the POD IP (clusterIP: None) & so there is no load-balancing (kube-proxy does not handle these Services).
-* The Engine is a Deployment, that manages scale
+* The Server is sceduled as a pod (with no deployment), with a headless service that defines a selector to the POD, so the DNS points directly to the POD IP (clusterIP: None) & so there is no load-balancing (kube-proxy does not handle these Services).
+* The Client is a Deployment, that manages scale
 
 
 ## Build and Run
