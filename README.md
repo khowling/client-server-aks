@@ -46,8 +46,9 @@ az aks create \
   --enable-addons monitoring \
   --generate-ssh-keys \
   --max-pods 250  \
-  --network-plugin azure \
-  --enable-vmss \
+  --network-plugin kubenet \
+  --vm-set-type VirtualMachineScaleSets  \
+  --load-balancer-sku standard \
   --node-vm-size Standard_D2s_v3
 ```
 
@@ -111,7 +112,7 @@ kubectl apply -f deployment.yaml
 ```
 
 ```
-kubectl scale --replicas=20 deployment/engine
+kubectl scale --replicas=400 deployment/engine
 ```
 
 ```
